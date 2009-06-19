@@ -38,7 +38,7 @@ event 'counter_event' => sub {
 
 no MooseX::POE;
 
-__PACKAGE__->meta->make_immutable();
+#__PACKAGE__->meta->make_immutable();
 
 1;
 __END__
