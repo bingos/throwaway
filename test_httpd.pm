@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use POE qw(Filter::HTTPD Filter::Stream Component::Client::HTTP Filter::HTTP::Parser);
 use HTTP::Status qw(status_message RC_BAD_REQUEST RC_OK RC_LENGTH_REQUIRED);
+use HTTP::Response;
 use Test::POE::Server::TCP;
 use Test::POE::Client::TCP;
 
@@ -91,6 +92,7 @@ event 'httpd_disconnected' => sub {
 event 'httpd_client_input' => sub {
   my ($kernel,$self,$id,$request) = @_[KERNEL,OBJECT,ARG0,ARG1];
   if ( my $tunnel = $self->_requests->{$id}->{tunnel} ) {
+     warn "[$request]\n";
      $tunnel->send_to_server( $request );
      return;
   }
@@ -171,15 +173,38 @@ event '_response' => sub {
 };
 
 event 'tunnel_socket_failed' => sub {
+  my ($kernel,$self,$sender) = @_[KERNEL,OBJECT,SENDER];
+  my $response = HTTP::Response->new( 500, 'Connection Failed' );
+  my $id = $sender->get_heap->alias();
+  $self->httpd->disconnect( $id );
+  $self->httpd->send_to_client( $id, _response_headers( $response ) );
+  $kernel->post( $sender, 'shutdown' );
+  return;
 };
 
 event 'tunnel_connected' => sub {
+  my ($kernel,$self,$sender) = @_[KERNEL,OBJECT,SENDER];
+  my $response = HTTP::Response->new( 200, 'Connection established' );
+  my $id = $sender->get_heap->alias();
+  $self->httpd->send_to_client( $id, _response_headers( $response ) );
+  $self->httpd->client_wheel( $id )->set_input_filter( POE::Filter::Stream->new() );
+  return;
 };
 
 event 'tunnel_disconnected' => sub {
+  my ($kernel,$self,$sender) = @_[KERNEL,OBJECT,SENDER];
+  my $id = $sender->get_heap->alias();
+  $self->httpd->disconnect( $id );
+  $kernel->post( $sender, 'shutdown' );
+  return;
 };
 
 event 'tunnel_input' => sub {
+  my ($kernel,$self,$sender,$data) = @_[KERNEL,OBJECT,SENDER,ARG0];
+  warn "From uplink: [$data]\n";
+  my $id = $sender->get_heap->alias();
+  $self->httpd->send_to_client( $id, $data );
+  return;
 };
 
 sub _response_headers {

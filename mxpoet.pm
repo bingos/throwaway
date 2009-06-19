@@ -21,9 +21,9 @@ event 'counter' => sub {
   $self->SUPER::counter(@_);
 };
 
-no MooseX::POE;
+#no MooseX::POE;
 
-__PACKAGE__->meta->make_immutable();
+#__PACKAGE__->meta->make_immutable();
 
 1;
 __END__
