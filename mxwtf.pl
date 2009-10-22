@@ -1,4 +1,4 @@
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 package mxpoe;
 
@@ -9,6 +9,7 @@ use Test::More;
 sub START {
   my ($kernel,$self) = @_[KERNEL,OBJECT];
   diag "Starting .... \n";
+  diag("$_\n") for $self->meta->get_all_events;
   $kernel->yield( 'counter_event' );
   return;
 }
@@ -32,19 +33,20 @@ extends 'mxpoe';
 
 sub START {
   my ($kernel,$self) = @_[KERNEL,OBJECT];
+  diag("$_\n") for $self->meta->get_all_events;
   diag "Starting EXTENSION .... \n";
   $kernel->yield( 'counter_event' );
   $kernel->yield( 'rounter_event' );
   return;
 }
 
-event 'counter_event' => sub {
+event 'rounter_event' => sub {
   my ($kernel,$self) = @_[KERNEL,OBJECT];
   pass('Got a counter event');
   return;
 };
 
-event 'rounter_event' => sub {
+event 'counter_event' => sub {
   my ($kernel,$self) = @_[KERNEL,OBJECT];
   pass('Got a counter event');
   return;
