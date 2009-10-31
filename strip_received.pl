@@ -52,6 +52,7 @@ sub nntp_220 {
   $newsgroups =~ s/^\"//;
   $newsgroups =~ s/\"$//;
   my $perl_version = _extract_perl_version(\$body) || '0.0.0';
+  $article->header_set('Received');
   print $article->as_string;
   $kernel->post( $_[SENDER], 'shutdown' );
   return;
