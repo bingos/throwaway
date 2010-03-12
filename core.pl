@@ -1,20 +1,14 @@
 use strict;
 
-my $module = 'POE';
+my $module = shift || die;
 
 my $core = module_is_supplied_with_perl_core( $module );
 
 print $core, "\n";
 
 sub module_is_supplied_with_perl_core {
-        my $self = shift;
+        my $name = shift;
         my $ver  = shift || $];
-
-        ### allow it to be called as a package function as well like:
-        ###   CPANPLUS::Module::module_is_supplied_with_perl_core('Config')
-        ### so that we can check the status of modules that aren't released
-        ### to CPAN, but are part of the core.
-        my $name = ref $self ? $self->module : $self;
 
         ### check Module::CoreList to see if it's a core package
         require Module::CoreList;
