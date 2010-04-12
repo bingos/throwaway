@@ -1,17 +1,13 @@
 use strict;
 use warnings;
-use Term::UI;
-use Term::ReadLine;
 use ExtUtils::Installed;
 use File::Spec;
 use File::Fetch;
 use IO::Zlib;
 use version;
 use Module::Load::Conditional qw[check_install];
-use CPANPLUS::Backend;
 
-$ENV{PERL_MM_USE_DEFAULT} = 1; # despite verbose setting
-$ENV{PERL_EXTUTILS_AUTOINSTALL} = '--defaultdeps';
+my $mirror = 'http://cpan.hexten.net/';
 
 my %installed;
 my %cpan;
@@ -22,7 +18,7 @@ foreach my $module ( sort ExtUtils::Installed->new->modules() ) {
   $installed{ $module } = defined $href->{version} ? $href->{version} : 'undef';
 }
 
-my $loc = fetch_indexes('.','ftp://localhost/CPAN/') or die;
+my $loc = fetch_indexes('.',$mirror) or die;
 populate_cpan( $loc );
 foreach my $module ( sort keys %installed ) {
   # Eliminate core modules
@@ -30,35 +26,13 @@ foreach my $module ( sort keys %installed ) {
     delete $installed{ $module };
     next;
   }
-  if ( $installed{ $module } eq 'undef' and $cpan{ $module } eq 'undef' ) {
-    delete $installed{ $module };
-    next;
-  }
-  unless ( _vcmp( $cpan{ $module }, $installed{ $module} ) > 0 ) {
-    delete $installed{ $module };
-    next;
-  }
 }
 
 # Further eliminate choices.
 
-my $term = Term::ReadLine->new('brand');
 
-foreach my $module ( sort keys %installed ) {
-  delete $installed{ $module }
-    unless $term->ask_yn(
-               prompt => "Update module '$module' ?",
-               default => 'y',
-  );
-}
-
-my $cb = CPANPLUS::Backend->new();
-my $conf = $cb->configure_object;
-$conf->set_conf( 'prereqs' => 1 );
 foreach my $mod ( sort keys %installed ) {
-  my $module = $cb->module_tree($mod);
-  next unless $module;
-  $module->install();
+  print $mod, "\n";
 }
 exit 0;
 

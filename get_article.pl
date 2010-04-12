@@ -46,12 +46,14 @@ sub nntp_220 {
   my $newsgroups = $article->header('Newsgroups');
   my $body = $article->body();
   my $encoding = $article->header('Content-Transfer-Encoding');
+  my $xperl = $article->header('X-Test-Reporter-Perl');
   print $encoding, "\n" if $encoding;
   $body = decode_base64($body)  if($encoding && $encoding eq 'base64');
   $body = decode_qp($body)      if($encoding && $encoding eq 'quoted-printable');
   $newsgroups =~ s/^\"//;
   $newsgroups =~ s/\"$//;
-  my $perl_version = _extract_perl_version(\$body) || '0.0.0';
+  my $perl_version = $xperl || _extract_perl_version(\$body) || 'v0.0.0';
+  print $perl_version, "\n";
   print $article->as_string;
   $kernel->post( $_[SENDER], 'shutdown' );
   return;
@@ -73,5 +75,5 @@ $$body =~ /Summary of my (?:perl\d+)? \((?:revision )?(\d+(?:\.\d+)?) (?:version
  
   my $version = sprintf "%d.%d.%d", $rev, $ver, $sub;
   $version .= " $extra" if $extra;
-  return $version;
+  return "v$version";
 }
