@@ -6,8 +6,10 @@ use File::Fetch;
 use File::Find;
 use IO::Zlib;
 use version;
-use CPANPLUS::Internals::Constants;
 use Module::Load::Conditional qw[check_install];
+
+use constant ON_WIN32       => $^O eq 'MSWin32';
+use constant ON_VMS         => $^O eq 'VMS';
 
 my $mirror = 'http://cpan.hexten.net/';
 
