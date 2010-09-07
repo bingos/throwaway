@@ -72,6 +72,6 @@ sub fetch_indexes {
   my $ff = File::Fetch->new( uri => $url );
   my $stat = $ff->fetch( to => $location );
   return unless $stat;
-  print "Downloaded '$url' to '$stat'\n";
+  warn "Downloaded '$url' to '$stat'\n";
   return $stat;
 }
