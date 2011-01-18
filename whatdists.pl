@@ -5,6 +5,8 @@ use File::Spec::Unix;
 use File::Fetch;
 use File::Find;
 use IO::Zlib;
+use CPAN::DistnameInfo;
+use Sort::Versions;
 use version;
 use Module::Load::Conditional qw[check_install];
 
@@ -13,34 +15,47 @@ use constant ON_VMS         => $^O eq 'VMS';
 
 my $mirror = 'http://cpan.hexten.net/';
 
-my %installed;
-my %cpan;
 my %seen;
 
-foreach my $module ( _all_installed() ) {
-  my $href = check_install( module => $module );
-  next unless $href;
-  $installed{ $module } = defined $href->{version} ? $href->{version} : 'undef';
-}
+{
 
-my $loc = fetch_indexes('.',$mirror) or die;
-populate_cpan( $loc );
-foreach my $module ( sort keys %installed ) {
-  # Eliminate core modules
-  if ( supplied_with_core( $module ) and !$cpan{ $module } ) { 
-    delete $installed{ $module };
-    next;
+  my %installed;
+  my %cpan;
+  foreach my $module ( _all_installed() ) {
+    my $href = check_install( module => $module );
+    next unless $href;
+    $installed{ $module } = defined $href->{version} ? $href->{version} : 'undef';
   }
+
+  my $loc = fetch_indexes('.',$mirror) or die;
+  populate_cpan( $loc, \%cpan );
+  foreach my $module ( sort keys %installed ) {
+    # Eliminate core modules
+    if ( supplied_with_core( $module ) and !$cpan{ $module } ) { 
+      delete $installed{ $module };
+      next;
+    }
+  }
+
+  # Further eliminate choices.
+
+  foreach my $mod ( sort keys %installed ) {
+    next unless $cpan{ $mod };
+    my $cd = CPAN::DistnameInfo->new( $cpan{ $mod } );
+    if ( exists $seen{ $cd->dist } ) {
+      my $ed = CPAN::DistnameInfo->new(  $seen{ $cd->dist } );
+      if ( versioncmp( $cd->version, $ed->version ) == 1 ) {
+        $seen{ $cd->dist } = $cpan{ $mod };
+      }
+    }
+    else {
+      $seen{ $cd->dist } = $cpan{ $mod };
+    }
+  }
+
 }
 
-# Further eliminate choices.
-
-foreach my $mod ( sort keys %installed ) {
-  next unless $cpan{ $mod };
-  $seen{ $cpan{ $mod } }++;
-}
-
-print $_, "\n" for sort keys %seen;
+print $_, "\n" for sort values %seen;
 exit 0;
 
 sub supplied_with_core {
@@ -58,6 +73,7 @@ sub _vcmp {
 
 sub populate_cpan {
   my $pfile = shift;
+  my $cpan  = shift;
   my $fh = IO::Zlib->new( $pfile, "rb" ) or die "$!\n";
   my %dists;
 
@@ -67,7 +83,7 @@ sub populate_cpan {
   while (<$fh>) {
     chomp;
     my ($module,$version,$package_path) = split ' ', $_;
-    $cpan{ $module } = $package_path;
+    $cpan->{ $module } = $package_path;
   }
   return 1;
 }
