@@ -16,7 +16,7 @@ use constant ON_VMS         => $^O eq 'VMS';
 
 my $mirror = 'http://cpan.hexten.net/';
 
-my %seen;
+my %seen_dist;
 
 {
 
@@ -48,20 +48,20 @@ my %seen;
     }
 
     my $cd = CPAN::DistnameInfo->new( $cpan{ $mod } );
-    if ( exists $seen{ $cd->dist } ) {
-      my $ed = CPAN::DistnameInfo->new(  $seen{ $cd->dist } );
+    if ( exists $seen_dist{ $cd->dist } ) {
+      my $ed = CPAN::DistnameInfo->new(  $seen_dist{ $cd->dist } );
       if ( versioncmp( $cd->version, $ed->version ) == 1 ) {
-        $seen{ $cd->dist } = $cpan{ $mod };
+        $seen_dist{ $cd->dist } = $cpan{ $mod };
       }
     }
     else {
-      $seen{ $cd->dist } = $cpan{ $mod };
+      $seen_dist{ $cd->dist } = $cpan{ $mod };
     }
   }
 
 }
 
-print $_, "\n" for sort values %seen;
+print $_, "\n" for sort values %seen_dist;
 exit 0;
 
 sub supplied_with_core {
@@ -132,7 +132,7 @@ sub _all_installed {
     # elements that are within other elements (e.g., an archdir)
     my @inc_ordered = sort { length $b <=> length $a } @INC;
 
-    my %seen; my @rv; my %dir_done;
+    my %seen_mod; my @rv; my %dir_done;
     for my $dir (@inc_ordered) {
         next if $dir eq '.';
 
@@ -174,7 +174,7 @@ sub _all_installed {
                     $mod = substr($mod, length($dir) + 1, -3);
                     $mod = join '::', $file_spec->splitdir($mod);
 
-                    return if $seen{$mod}++;
+                    return if $seen_mod{$mod}++;
 
                     my $content = read_file($File::Find::name);
                     unless ($content =~ m/^ \s* package \s+ $mod \b/xsm) {
