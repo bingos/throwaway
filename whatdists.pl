@@ -4,6 +4,7 @@ use File::Spec;
 use File::Spec::Unix;
 use File::Fetch;
 use File::Find;
+use File::Slurp;
 use IO::Zlib;
 use CPAN::DistnameInfo;
 use Sort::Versions;
@@ -40,10 +41,12 @@ my %seen;
   # Further eliminate choices.
 
   foreach my $mod ( sort keys %installed ) {
+
     unless ($cpan{ $mod }) {
-        warn "Not found in CPAN index: $mod\n";
+        warn "$mod not found in CPAN index\n";
         next;
     }
+
     my $cd = CPAN::DistnameInfo->new( $cpan{ $mod } );
     if ( exists $seen{ $cd->dist } ) {
       my $ed = CPAN::DistnameInfo->new(  $seen{ $cd->dist } );
@@ -172,6 +175,12 @@ sub _all_installed {
                     $mod = join '::', $file_spec->splitdir($mod);
 
                     return if $seen{$mod}++;
+
+                    my $content = read_file($File::Find::name);
+                    unless ($content =~ m/^ \s* package \s+ $mod \b/xsm) {
+                        warn "No 'package $mod' seen in $File::Find::name\n";
+                        return;
+                    }
 
                     push @rv, $mod;
                 },
