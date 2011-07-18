@@ -16,13 +16,17 @@ use constant ON_VMS         => $^O eq 'VMS';
 
 my $mirror = 'http://cpan.hexten.net/';
 
+my $opt_verbose = 1;
+my @search_dirs = (@ARGV) ? @ARGV : @INC;
+warn "Searching @search_dirs\n" if $opt_verbose;
+
 my %seen_dist;
 
 {
 
   my %installed;
   my %cpan;
-  foreach my $module ( _all_installed() ) {
+  foreach my $module ( _all_installed(@search_dirs) ) {
     my $href = check_install( module => $module );
     next unless $href;
     $installed{ $module } = defined $href->{version} ? $href->{version} : 'undef';
@@ -43,7 +47,8 @@ my %seen_dist;
   foreach my $mod ( sort keys %installed ) {
 
     unless ($cpan{ $mod }) {
-        warn "$mod not found in CPAN index\n";
+        warn "$mod not found in CPAN index (local version $installed{$mod})\n"
+            if $opt_verbose;
         next;
     }
 
@@ -106,6 +111,8 @@ sub fetch_indexes {
 }
 
 sub _all_installed {
+    my (@dirs) = @_;
+
     ### File::Find uses follow_skip => 1 by default, which doesn't die
     ### on duplicates, unless they are directories or symlinks.
     ### Ticket #29796 shows this code dying on Alien::WxWidgets,
@@ -128,12 +135,12 @@ sub _all_installed {
     ### XXX CPANPLUS::inc is now obsolete, remove the calls
     #local @INC = CPANPLUS::inc->original_inc;
 
-    # sort @INC to put longest first to make it easy to handle
+    # sort @dirs to put longest first to make it easy to handle
     # elements that are within other elements (e.g., an archdir)
-    my @inc_ordered = sort { length $b <=> length $a } @INC;
+    my @dirs_ordered = sort { length $b <=> length $a } @dirs;
 
     my %seen_mod; my @rv; my %dir_done;
-    for my $dir (@inc_ordered) {
+    for my $dir (@dirs_ordered) {
         next if $dir eq '.';
 
         ### not a directory after all 
@@ -178,14 +185,16 @@ sub _all_installed {
 
                     my $content = read_file($File::Find::name);
                     unless ($content =~ m/^ \s* package \s+ $mod \b/xsm) {
-                        warn "No 'package $mod' seen in $File::Find::name\n";
+                        warn "No 'package $mod' seen in $File::Find::name\n"
+                            if $opt_verbose;
                         return;
                     }
 
                     push @rv, $mod;
                 },
             }, $dir
-        ) };
+        ); 1 }
+            or die "File::Find died: $@";
 
     }
 
