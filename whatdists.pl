@@ -168,6 +168,8 @@ sub _all_installed {
                 wanted      => sub {
 
                     unless (/\.pm$/i) {
+                        # skip all dot-dirs (eg .git .svn)
+                        $File::Find::prune = 1 if -d $File::Find::name and /^\.\w/;
                         # don't reenter a dir we've already done
                         $File::Find::prune = 1 if $dir_done{ $File::Find::name };
                         return;
