@@ -40,7 +40,10 @@ my %seen;
   # Further eliminate choices.
 
   foreach my $mod ( sort keys %installed ) {
-    next unless $cpan{ $mod };
+    unless ($cpan{ $mod }) {
+        warn "Not found in CPAN index: $mod\n";
+        next;
+    }
     my $cd = CPAN::DistnameInfo->new( $cpan{ $mod } );
     if ( exists $seen{ $cd->dist } ) {
       my $ed = CPAN::DistnameInfo->new(  $seen{ $cd->dist } );
@@ -112,7 +115,8 @@ sub _all_installed {
     ### it then uses -l _ which is not allowed by the statbuffer because
     ### you did a stat, not an lstat (duh!). so don't tell win32 to
     ### follow symlinks, as that will break badly
-    $find_args{'follow_fast'} = 1 unless ON_WIN32;
+    # XXX disabled because we want the postprocess hook to work
+    #$find_args{'follow_fast'} = 1 unless ON_WIN32;
 
     ### never use the @INC hooks to find installed versions of
     ### modules -- they're just there in case they're not on the
@@ -121,8 +125,12 @@ sub _all_installed {
     ### XXX CPANPLUS::inc is now obsolete, remove the calls
     #local @INC = CPANPLUS::inc->original_inc;
 
-    my %seen; my @rv;
-    for my $dir (@INC ) {
+    # sort @INC to put longest first to make it easy to handle
+    # elements that are within other elements (e.g., an archdir)
+    my @inc_ordered = sort { length $b <=> length $a } @INC;
+
+    my %seen; my @rv; my %dir_done;
+    for my $dir (@inc_ordered) {
         next if $dir eq '.';
 
         ### not a directory after all 
@@ -144,9 +152,16 @@ sub _all_installed {
         ### so be safe and wrap it in an eval.
         eval { File::Find::find(
             {   %find_args,
+                postprocess => sub {
+                    $dir_done{ $File::Find::dir }++;
+                },
                 wanted      => sub {
 
-                    return unless /\.pm$/i;
+                    unless (/\.pm$/i) {
+                        # don't reenter a dir we've already done
+                        $File::Find::prune = 1 if $dir_done{ $File::Find::name };
+                        return;
+                    }
                     my $mod = $File::Find::name;
 
                     ### make sure it's in Unix format, as it
