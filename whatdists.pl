@@ -185,10 +185,12 @@ sub _all_installed {
 
                     return if $seen_mod{$mod}++;
 
+                    ### ignore files that don't contain a matching package declaration
+                    ### warn about those that do contain some kind of package declaration
                     my $content = read_file($File::Find::name);
-                    unless ($content =~ m/^ \s* package \s+ $mod \b/xsm) {
+                    unless ($content =~ m/^ \s* package \s+ (\#.*\n\s*)? $mod \b/xm) {
                         warn "No 'package $mod' seen in $File::Find::name\n"
-                            if $opt_verbose;
+                            if $opt_verbose && $content =~ /\b package \b/x;
                         return;
                     }
 
