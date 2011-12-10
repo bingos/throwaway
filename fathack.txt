@@ -1,0 +1,14 @@
+my $i = 0;
+unshift @INC, sub {
+  if (my $fat = $fatpacked{$_[1]}) {
+    my $fatfile = "/tmp/fat_pack_" . $i; 
+    $i++;
+    open my $wfh, '>', $fatfile or die "Error opening file";
+    print { $wfh } $fat;
+    close $wfh;
+    open my $fh, '<', $fatfile;
+    unlink $fatfile;
+    return $fh;
+  }
+  return
+};
