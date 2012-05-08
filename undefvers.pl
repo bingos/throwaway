@@ -13,6 +13,7 @@ my %cpan;
 my $loc = fetch_indexes('.',$mirror) or die;
 populate_cpan( $loc );
 
+say for sort keys %cpan;
 say "Total dists: " . scalar keys %cpan;
 exit 0;
 
