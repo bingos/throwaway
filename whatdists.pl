@@ -14,7 +14,7 @@ use Module::Load::Conditional qw[check_install];
 use constant ON_WIN32       => $^O eq 'MSWin32';
 use constant ON_VMS         => $^O eq 'VMS';
 
-my $mirror = 'http://cpan.hexten.net/';
+my $mirror = 'http://www.cpan.org/';
 
 my $opt_verbose = 1;
 my @search_dirs = (@ARGV) ? @ARGV : @INC;
@@ -36,7 +36,7 @@ my %seen_dist;
   populate_cpan( $loc, \%cpan );
   foreach my $module ( sort keys %installed ) {
     # Eliminate core modules
-    if ( supplied_with_core( $module ) and !$cpan{ $module } ) { 
+    if ( supplied_with_core( $module ) and !$cpan{ $module } ) {
       delete $installed{ $module };
       next;
     }
