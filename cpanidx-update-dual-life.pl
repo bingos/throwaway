@@ -1,3 +1,4 @@
+#!/opt/perl-5.20.0/bin/perl
 use strict;
 use warnings;
 use lib qq'Porting';
@@ -18,8 +19,8 @@ require "Maintainers.pl";
 die "No 'git', no joy\n" unless can_run('git');
 
 my $metacpan= 'http://api.metacpan.org/release/';
-my $mirror  = 'http://www.cpan.org/';
-my $cpanidx = 'http://cpanidx.org/cpanidx/';
+my $mirror  = 'http://cpan.mirror.local/CPAN/';
+my $cpanidx = 'http://cpan.mirror.local/cpanidx/';
 my $module = shift || die "No module to update provided\n";
 
 die "That module is not listed in Porting/Maintainers.pl\n" unless
