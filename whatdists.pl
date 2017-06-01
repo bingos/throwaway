@@ -4,7 +4,7 @@ use File::Spec;
 use File::Spec::Unix;
 use File::Fetch;
 use File::Find;
-use File::Slurp;
+use File::Slurper qw[read_binary];
 use IO::Zlib;
 use CPAN::DistnameInfo;
 use Sort::Versions;
@@ -187,7 +187,7 @@ sub _all_installed {
 
                     ### ignore files that don't contain a matching package declaration
                     ### warn about those that do contain some kind of package declaration
-                    my $content = read_file($File::Find::name);
+                    my $content = read_binary($File::Find::name);
                     unless ($content =~ m/^ \s* package \s+ (\#.*\n\s*)? $mod \b/xm) {
                         warn "No 'package $mod' seen in $File::Find::name\n"
                             if $opt_verbose && $content =~ /\b package \b/x;
